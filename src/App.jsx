@@ -1,13 +1,12 @@
 import "./App.css";
-import LoginPage from "./pages/authentication/LoginPage";
-import RegisterPage from "./pages/authentication/RegisterPage";
+import { BrowserRouter} from "react-router-dom";
+import MainRoute from "./routes/MainRoute";
 
 function App() {
   return (
-    <>
-      <LoginPage />
-      <RegisterPage />
-    </>
+    <BrowserRouter>
+      <MainRoute />
+    </BrowserRouter>
   );
 }
 

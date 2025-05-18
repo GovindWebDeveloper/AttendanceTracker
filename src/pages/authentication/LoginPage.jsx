@@ -1,13 +1,37 @@
-import { Form, Input, Button } from "antd";
+import { Form, Input, Button, message } from "antd";
 import { images } from "../../assets";
 import { FaUser } from "react-icons/fa";
+import API from "../../services/authService";
+import { useNavigate } from "react-router-dom";
 
 const LoginPage = () => {
-  const onFinish = (values) => {
-    console.log("Success:", values);
+  const navigate = useNavigate();
+  const onFinish = async (values) => {
+    try {
+      const response = await API.post("/auth/login", {
+        email: values.email,
+        password: values.password,
+      });
+      const { token, user } = response.data;
+
+      //Store token and user data in localStorage
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
+
+      if (user.role === "admin") {
+        console.log("Welcome to Admin Dashborad");
+        navigate("/admin");
+      } else if (user.role === "user") {
+        console.log("Welcome to User Dashboard");
+        navigate("/user");
+      }
+    } catch (err) {
+      console.log(err.response?.data?.msg || "Login Failed");
+    }
   };
+
   const onFinishFailed = (errorInfo) => {
-    console.log("Failed:", errorInfo);
+    console.log("Please fill all required fields!", errorInfo);
   };
   return (
     <div
@@ -42,19 +66,17 @@ const LoginPage = () => {
         <FaUser style={{ fontSize: "3.5em", margin: "auto" }} />
         <h1 style={{ textAlign: "center", marginBottom: "1em" }}>Login</h1>
         <Form.Item
-          label="Username"
-          name="username"
+          name="email"
           rules={[{ required: true, message: "Please input your username!" }]}
         >
-          <Input />
+          <Input placeholder="Username" />
         </Form.Item>
 
         <Form.Item
-          label="Password"
           name="password"
           rules={[{ required: true, message: "Please input your password!" }]}
         >
-          <Input.Password />
+          <Input.Password placeholder="Password" />
         </Form.Item>
 
         <Form.Item label={null} style={{ textAlign: "center" }}>
@@ -62,6 +84,19 @@ const LoginPage = () => {
             Submit
           </Button>
         </Form.Item>
+        <div>
+          <p style={{ textAlign: "center" }}>
+            Don't have an account?
+            <Button
+              onClick={() => navigate("/register")}
+              color="blue"
+              variant="link"
+            >
+              {" "}
+              Register
+            </Button>
+          </p>
+        </div>
       </Form>
     </div>
   );

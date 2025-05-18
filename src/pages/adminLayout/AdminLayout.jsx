@@ -10,11 +10,13 @@ import {
   TeamOutlined,
 } from "@ant-design/icons";
 import { Outlet } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const { Header, Sider, Content } = Layout;
 const { Title } = Typography;
 
 const AdminLayout = () => {
+  const navigate = useNavigate();
   const [collapsed, setCollapsed] = React.useState(false);
   const {
     token: { colorBgContainer },
@@ -22,10 +24,14 @@ const AdminLayout = () => {
 
   const handleMenuClick = ({ key }) => {
     if (key === "logout") {
-      // Handle logout logic
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      navigate("/login");
       console.log("Logged out");
     }
   };
+
+  const User = JSON.parse(localStorage.getItem("user"));
 
   const userMenu = (
     <Menu onClick={handleMenuClick}>
@@ -98,7 +104,7 @@ const AdminLayout = () => {
                 style={{ backgroundColor: "#87d068" }}
                 icon={<UserOutlined />}
               />
-              <span>Admin</span>
+              <span>{User.name}</span>
             </Space>
           </Dropdown>
         </Header>
