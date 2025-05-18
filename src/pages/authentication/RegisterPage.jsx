@@ -1,4 +1,6 @@
-import React from "react";
+import API from "../../services/authService";
+import moment from "moment";
+import { useNavigate } from "react-router-dom";
 import {
   Form,
   Input,
@@ -14,20 +16,50 @@ import { UploadOutlined } from "@ant-design/icons";
 
 const { Option } = Select;
 
+// 🔧 Helper function to convert file to base64
+const toBase64 = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = (error) => reject(error);
+  });
+
 const RegisterPage = () => {
   const [form] = Form.useForm();
+  const navigate = useNavigate();
 
-  const onFinish = (values) => {
-    const formattedValues = {
-      ...values,
-      joiningDate: values.joiningDate.format("YYYY-MM-DD"),
-    };
-    console.log("Form Submitted:", formattedValues);
-    message.success("Registration successful!");
+  const onFinish = async (values) => {
+    try {
+      const file = values.profilePicture?.[0]?.originFileObj;
+      let base64File = "";
+
+      if (file) {
+        base64File = await toBase64(file);
+      }
+
+      const payload = {
+        name: values.name,
+        email: values.email,
+        phone: values.phone,
+        department: values.department,
+        password: values.password,
+        userId: values.userId,
+        designation: values.designation,
+        joiningDate: moment(values.joiningDate).format("DD-MMM-YYYY"),
+        file: base64File,
+      };
+
+      await API.post("/auth/register", payload);
+      message.success("Registration successful!");
+      navigate("/");
+    } catch (error) {
+      message.error(error.response?.data?.msg || "Registration failed.");
+    }
   };
 
   return (
-    <div style={{}}>
+    <div>
       <Form
         form={form}
         layout="vertical"
@@ -47,11 +79,10 @@ const RegisterPage = () => {
         </h2>
 
         <Row gutter={16}>
-          {/* Left Column */}
           <Col span={12}>
             <Form.Item
               label="Full Name"
-              name="fullName"
+              name="name"
               rules={[
                 { required: true, message: "Please enter your full name" },
               ]}
@@ -67,7 +98,6 @@ const RegisterPage = () => {
             >
               <Input />
             </Form.Item>
-
             <Form.Item
               label="Department"
               name="department"
@@ -82,7 +112,6 @@ const RegisterPage = () => {
                 <Option value="Operations">Operations</Option>
               </Select>
             </Form.Item>
-
             <Form.Item
               label="Password"
               name="password"
@@ -112,11 +141,10 @@ const RegisterPage = () => {
             </Form.Item>
           </Col>
 
-          {/* Right Column */}
           <Col span={12}>
             <Form.Item
               label="Employee ID"
-              name="employeeId"
+              name="userId"
               rules={[
                 { required: true, message: "Please enter your employee ID" },
               ]}
@@ -133,7 +161,6 @@ const RegisterPage = () => {
             >
               <Input />
             </Form.Item>
-
             <Form.Item
               label="Designation"
               name="designation"
@@ -143,7 +170,6 @@ const RegisterPage = () => {
             >
               <Input />
             </Form.Item>
-
             <Form.Item
               label="Joining Date"
               name="joiningDate"
@@ -153,8 +179,12 @@ const RegisterPage = () => {
             >
               <DatePicker style={{ width: "100%" }} />
             </Form.Item>
-
-            <Form.Item label="Profile Picture" name="profilePicture">
+            <Form.Item
+              label="Profile Picture"
+              name="profilePicture"
+              valuePropName="fileList"
+              getValueFromEvent={(e) => (Array.isArray(e) ? e : e?.fileList)}
+            >
               <Upload name="file" listType="picture" beforeUpload={() => false}>
                 <Button icon={<UploadOutlined />}>Upload</Button>
               </Upload>
