@@ -45,15 +45,13 @@ const Attendance = () => {
 
   return (
     <div style={{ padding: 12 }}>
-      <Title level={3} style={{ textAlign: "center", marginBottom: 20 }}>
-        Attendance Report
-      </Title>
+      <Title level={2}>Employee Attendance Report </Title>
       <Table
         columns={columns}
         dataSource={data}
         bordered
         pagination={{ pageSize: 10 }}
-        scroll={{ x: "max-content" }} // Enable horizontal scroll on small screens
+        scroll={{ x: "max-content" }} 
       />
     </div>
   );

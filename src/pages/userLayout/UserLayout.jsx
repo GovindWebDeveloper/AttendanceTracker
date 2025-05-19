@@ -19,7 +19,7 @@ import {
   MenuUnfoldOutlined,
   MenuOutlined,
 } from "@ant-design/icons";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 
 const { Header, Sider, Content } = Layout;
 const { Title } = Typography;
@@ -30,6 +30,7 @@ const UserLayout = () => {
   const [collapsed, setCollapsed] = React.useState(false);
   const [drawerVisible, setDrawerVisible] = React.useState(false);
   const screens = useBreakpoint();
+  const location = useLocation();
 
   const handleMenuClick = ({ key }) => {
     if (key === "logout") {
@@ -52,12 +53,17 @@ const UserLayout = () => {
       </Menu.Item>
     </Menu>
   );
+  const selectedKey = location.pathname.startsWith("/user/attendance")
+    ? "attendance"
+    : location.pathname.startsWith("/user/profile")
+    ? "profile"
+    : "dashboard"; // default fallback
 
   const menuItems = (
     <Menu
       theme="dark"
       mode="inline"
-      defaultSelectedKeys={["dashboard"]}
+      selectedKeys={[selectedKey]}
       onClick={() => setDrawerVisible(false)}
     >
       <Menu.Item key="dashboard" icon={<DashboardOutlined />}>
@@ -119,9 +125,7 @@ const UserLayout = () => {
                 }
               )
             )}
-            <Title level={4} style={{ margin: 0 }}>
-              Dashboard
-            </Title>
+            <Title level={4} style={{ margin: 0 }}></Title>
           </Space>
 
           <Dropdown overlay={userMenu} placement="bottomRight">

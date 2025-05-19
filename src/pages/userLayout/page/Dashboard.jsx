@@ -1,8 +1,12 @@
+import "@ant-design/v5-patch-for-react-19";
 import { useEffect, useState } from "react";
 import {
   PlayCircleOutlined,
   PauseCircleOutlined,
   StopOutlined,
+  ClockCircleOutlined,
+  CalendarOutlined,
+  HourglassOutlined,
 } from "@ant-design/icons";
 import {
   Card,
@@ -12,16 +16,18 @@ import {
   Statistic,
   Space,
   Divider,
-  Progress,
+  Typography,
+  message,
 } from "antd";
 import moment from "moment";
 
 import { formatTime, calculateTotalHours } from "../../../utils/timeUtils";
 import {
   postAttendanceAction,
-  updateTimerSeconds,
   getMyAttendance,
 } from "../../../services/attendanceService";
+
+const { Title, Text } = Typography;
 
 const Dashboard = () => {
   const [status, setStatus] = useState({
@@ -37,46 +43,82 @@ const Dashboard = () => {
   const [workSeconds, setWorkSeconds] = useState(0);
   const [breakSeconds, setBreakSeconds] = useState(0);
 
-  // Timer increment logic
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (isWorking && !isOnBreak) setWorkSeconds((prev) => prev + 1);
-      if (isOnBreak) setBreakSeconds((prev) => prev + 1);
-    }, 1000);
-    return () => clearInterval(interval);
+    let workInterval, breakInterval;
+    if (isWorking) {
+      workInterval = setInterval(() => {
+        setWorkSeconds((prev) => prev + 1);
+      }, 1000);
+    }
+
+    if (isOnBreak) {
+      breakInterval = setInterval(() => {
+        setBreakSeconds((prev) => prev + 1);
+      }, 1000);
+    }
+
+    return () => {
+      clearInterval(workInterval);
+      clearInterval(breakInterval);
+    };
   }, [isWorking, isOnBreak]);
 
-  // Update timer to backend every 10 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (isWorking || isOnBreak) {
-        updateTimerSeconds(workSeconds, breakSeconds).catch((err) =>
-          console.error("Failed to update timer:", err)
-        );
-      }
-    }, 10000);
-    return () => clearInterval(interval);
-  }, [isWorking, isOnBreak, workSeconds, breakSeconds]);
-
   const handleAction = async (type) => {
-    const time = new Date().toLocaleTimeString();
-    setStatus((prev) => ({ ...prev, [type]: time }));
-
-    if (type === "punchIn") setIsWorking(true);
-    if (type === "breakIn") setIsOnBreak(true);
-    if (type === "breakOut") setIsOnBreak(false);
-    if (type === "punchOut") setIsWorking(false);
-
     try {
-      const payload = type === "punchOut" ? { workSeconds, breakSeconds } : {};
-      await postAttendanceAction(type, payload);
+      // Prevent duplicate Punch In
+      if (type === "punchIn" && status.punchIn && !status.punchOut) {
+        message.warning("You have already punched in.");
+        return;
+      }
+
+      // Prevent duplicate Punch Out
+      if (type === "punchOut" && status.punchOut) {
+        message.warning("You have already punched out.");
+        return;
+      }
+
+      const payload = {};
 
       if (type === "punchOut") {
-        const totalSeconds = workSeconds - breakSeconds;
-        setTotalHours(formatTime(totalSeconds));
+        payload.workSeconds = workSeconds;
+        payload.breakSeconds = breakSeconds;
+      }
+
+      await postAttendanceAction(type, payload);
+
+      const time = new Date().toLocaleTimeString();
+      setStatus((prev) => ({ ...prev, [type]: time }));
+
+      // Timer logic
+      if (type === "punchIn") {
+        setIsWorking(true);
+        localStorage.setItem("punchInStartTime", new Date().toISOString());
+        message.success("You have punched in successfully.");
+      }
+
+      if (type === "breakIn") {
+        setIsOnBreak(true);
+        localStorage.setItem("breakInStartTime", new Date().toISOString());
+        message.success("You are now on a break.");
+      }
+
+      if (type === "breakOut") {
+        setIsOnBreak(false);
+        localStorage.removeItem("breakInStartTime");
+        message.success("Break ended. You're back to work.");
+      }
+
+      if (type === "punchOut") {
+        setIsWorking(false);
+        setIsOnBreak(false);
+        fetchAttendanceData();
+        localStorage.removeItem("punchInStartTime");
+        localStorage.removeItem("breakInStartTime");
+        message.success("You have punched out successfully.");
       }
     } catch (error) {
-      console.error("Action error:", error);
+      console.error("handleAction error:", error);
+      message.error("Something went wrong. Please try again.");
     }
   };
 
@@ -90,6 +132,7 @@ const Dashboard = () => {
 
       if (todayAttendance) {
         const latestBreak = todayAttendance.breaks?.slice(-1)[0] || {};
+
         setStatus({
           punchIn: todayAttendance.punchIn || null,
           breakIn: latestBreak.breakIn || null,
@@ -100,9 +143,12 @@ const Dashboard = () => {
         setWorkSeconds(todayAttendance.workSeconds || 0);
         setBreakSeconds(todayAttendance.breakSeconds || 0);
 
-        if (todayAttendance.punchIn && !todayAttendance.punchOut)
+        if (todayAttendance.punchIn && !todayAttendance.punchOut) {
           setIsWorking(true);
-        if (latestBreak.breakIn && !latestBreak.breakOut) setIsOnBreak(true);
+        }
+        if (latestBreak.breakIn && !latestBreak.breakOut) {
+          setIsOnBreak(true);
+        }
 
         const total = calculateTotalHours(
           todayAttendance.punchIn,
@@ -112,73 +158,141 @@ const Dashboard = () => {
         setTotalHours(total);
       }
     } catch (error) {
-      console.log("Failed to get attendance data", error);
+      console.log("Failed to get the data from the API", error);
     }
   };
 
   useEffect(() => {
-    fetchAttendanceData();
+    const initializeTimerState = async () => {
+      await fetchAttendanceData();
+
+      const punchInStartTime = localStorage.getItem("punchInStartTime");
+      const breakInStartTime = localStorage.getItem("breakInStartTime");
+
+      if (punchInStartTime && !status.punchOut) {
+        const elapsed = Math.floor(
+          (Date.now() - new Date(punchInStartTime).getTime()) / 1000
+        );
+        setWorkSeconds((prev) => prev + elapsed);
+        setIsWorking(true);
+      }
+
+      if (breakInStartTime && !status.breakOut) {
+        const elapsed = Math.floor(
+          (Date.now() - new Date(breakInStartTime).getTime()) / 1000
+        );
+        setBreakSeconds((prev) => prev + elapsed);
+        setIsOnBreak(true);
+      }
+    };
+
+    initializeTimerState();
   }, []);
 
+  const actionCards = [
+    {
+      type: "punchIn",
+      label: "Punch In",
+      icon: <PlayCircleOutlined />,
+      color: "green",
+    },
+    {
+      type: "breakIn",
+      label: "Start Break",
+      icon: <PauseCircleOutlined />,
+      color: "orange",
+    },
+    {
+      type: "breakOut",
+      label: "End Break",
+      icon: <PauseCircleOutlined />,
+      color: "blue",
+    },
+    {
+      type: "punchOut",
+      label: "Punch Out",
+      icon: <StopOutlined />,
+      color: "red",
+    },
+  ];
+
   return (
-    <div style={{ padding: 8 }}>
+    <div style={{ padding: 16 }}>
+      <Title level={2}>Employee Attendance Dashboard</Title>
+      <Text type="secondary">
+        Monitor your work and break times in real-time.
+      </Text>
+
+      <Divider orientation="left" orientationMargin="0">
+        Attendance Actions
+      </Divider>
+
       <Row gutter={[16, 16]}>
-        {["punchIn", "breakIn", "breakOut", "punchOut"].map((action) => (
-          <Col key={action} xs={24} sm={12} md={12} lg={6}>
-            <Card title={action.replace(/([A-Z])/g, " $1")} bordered>
-              <Space direction="vertical" size="middle">
+        {actionCards.map(({ type, label, icon, color }) => (
+          <Col xs={24} sm={12} md={6} key={type}>
+            <Card
+              title={label}
+              bordered
+              style={{
+                textAlign: "center",
+                borderTop: `3px solid ${color}`,
+                height: "100%",
+              }}
+            >
+              <Space direction="vertical" style={{ width: "100%" }}>
                 <Button
-                  type={action === "punchOut" ? "default" : "primary"}
-                  danger={action === "punchOut"}
-                  icon={
-                    action === "punchIn" ? (
-                      <PlayCircleOutlined />
-                    ) : action.includes("break") ? (
-                      <PauseCircleOutlined />
-                    ) : (
-                      <StopOutlined />
-                    )
-                  }
-                  onClick={() => handleAction(action)}
+                  type="primary"
+                  danger={type === "punchOut"}
+                  icon={icon}
+                  onClick={() => handleAction(type)}
                   block
                 >
-                  {action.replace(/([A-Z])/g, " $1")}
+                  {label}
                 </Button>
-                <Statistic title="Time" value={status[action] || "--"} />
+                <Statistic
+                  title="Time"
+                  prefix={<ClockCircleOutlined />}
+                  value={status[type] || "--"}
+                />
               </Space>
             </Card>
           </Col>
         ))}
       </Row>
 
-      <Divider />
+      <Divider orientation="left" orientationMargin="0">
+        Real-Time Timers
+      </Divider>
+
+      <Row gutter={[16, 16]}>
+        <Col xs={24} sm={12}>
+          <Card title="Work Duration" bordered>
+            <Statistic
+              prefix={<HourglassOutlined />}
+              value={formatTime(workSeconds)}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12}>
+          <Card title="Break Duration" bordered>
+            <Statistic
+              prefix={<HourglassOutlined />}
+              value={formatTime(breakSeconds)}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      <Divider orientation="left" orientationMargin="0">
+        Summary
+      </Divider>
 
       <Row gutter={[16, 16]}>
         <Col xs={24} md={12}>
-          <Card title="Live Timer">
-            <Space
-              direction="vertical"
-              size="large"
-              align="center"
-              style={{ width: "100%" }}
-            >
-              <Progress
-                type="circle"
-                strokeColor={isOnBreak ? "#faad14" : "#52c41a"}
-                percent={100}
-                format={() =>
-                  isOnBreak ? formatTime(breakSeconds) : formatTime(workSeconds)
-                }
-                width={150}
-              />
-            </Space>
-          </Card>
-        </Col>
-
-        <Col xs={24} md={12}>
           <Card title="Total Working Hours">
             <Statistic
-              title="Calculated After Punch Out"
+              title="After Punch Out"
+              prefix={<CalendarOutlined />}
               value={totalHours || "--"}
             />
           </Card>
