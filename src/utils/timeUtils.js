@@ -33,8 +33,8 @@ export const calculateTotalHours = (punchIn, punchOut, breaks = []) => {
   });
 
   const hours = Math.floor(totalDuration.asHours());
-  const minutes = Math.floor(totalDuration.asMinutes());
-  const seconds = Math.floor(totalDuration.asSeconds());
+  const minutes = totalDuration.minutes();
+  const seconds = totalDuration.seconds();
 
   return `${hours}h ${minutes}min ${seconds}sec`;
 };

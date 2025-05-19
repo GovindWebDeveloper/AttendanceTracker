@@ -3,9 +3,20 @@ import { images } from "../../assets";
 import { FaUser } from "react-icons/fa";
 import API from "../../services/authService";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect screen size
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    handleResize(); // initial check
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const onFinish = async (values) => {
     try {
       const response = await API.post("/auth/login", {
@@ -14,89 +25,86 @@ const LoginPage = () => {
       });
       const { token, user } = response.data;
 
-      //Store token and user data in localStorage
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
 
       if (user.role === "admin") {
-        console.log("Welcome to Admin Dashborad");
         navigate("/admin");
       } else if (user.role === "user") {
-        console.log("Welcome to User Dashboard");
         navigate("/user");
       }
     } catch (err) {
-      console.log(err.response?.data?.msg || "Login Failed");
+      message.error(err.response?.data?.msg || "Login Failed");
     }
   };
 
   const onFinishFailed = (errorInfo) => {
-    console.log("Please fill all required fields!", errorInfo);
+    message.warning("Please fill all required fields!");
   };
+
   return (
     <div
       style={{
-        backgroundImage: `url(${images.loginBg})`,
+        backgroundImage: isMobile ? "none" : `url(${images.loginBg})`,
+        backgroundColor: isMobile ? "#f0f2f5" : "transparent",
         backgroundSize: "cover",
         backgroundPosition: "center",
-        zIndex: 1,
         height: "100vh",
         width: "100%",
-        position: "relative",
-        overflow: "hidden",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: "1em",
       }}
     >
       <Form
         style={{
-          maxWidth: "450px",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          margin: "auto",
-          marginTop: "200px",
+          maxWidth: 450,
+          width: "100%",
           backgroundColor: "white",
           padding: "2em",
-          border: "2px solid grey",
+          border: "1px solid #d9d9d9",
           borderRadius: "10px",
+          boxShadow: "0 0 10px rgba(0,0,0,0.1)",
         }}
+        layout="vertical"
         onFinish={onFinish}
         onFinishFailed={onFinishFailed}
         autoComplete="off"
       >
-        <FaUser style={{ fontSize: "3.5em", margin: "auto" }} />
-        <h1 style={{ textAlign: "center", marginBottom: "1em" }}>Login</h1>
+        <div style={{ textAlign: "center", marginBottom: "1em" }}>
+          <FaUser style={{ fontSize: "3em", color: "#1890ff" }} />
+          <h1 style={{ margin: "0.5em 0" }}>Login</h1>
+        </div>
+
         <Form.Item
           name="email"
-          rules={[{ required: true, message: "Please input your username!" }]}
+          label="Email"
+          rules={[{ required: true, message: "Please input your email!" }]}
         >
-          <Input placeholder="Username" />
+          <Input placeholder="Email" />
         </Form.Item>
 
         <Form.Item
           name="password"
+          label="Password"
           rules={[{ required: true, message: "Please input your password!" }]}
         >
           <Input.Password placeholder="Password" />
         </Form.Item>
 
-        <Form.Item label={null} style={{ textAlign: "center" }}>
-          <Button type="primary" htmlType="submit">
+        <Form.Item>
+          <Button type="primary" htmlType="submit" block>
             Submit
           </Button>
         </Form.Item>
-        <div>
-          <p style={{ textAlign: "center" }}>
-            Don't have an account?
-            <Button
-              onClick={() => navigate("/register")}
-              color="blue"
-              variant="link"
-            >
-              {" "}
-              Register
-            </Button>
-          </p>
-        </div>
+
+        <p style={{ textAlign: "center" }}>
+          Don't have an account?{" "}
+          <Button type="link" onClick={() => navigate("/register")}>
+            Register
+          </Button>
+        </p>
       </Form>
     </div>
   );

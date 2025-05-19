@@ -13,10 +13,10 @@ import {
   Col,
 } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
+import { useEffect, useState } from "react";
 
 const { Option } = Select;
 
-// 🔧 Helper function to convert file to base64
 const toBase64 = (file) =>
   new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -28,6 +28,14 @@ const toBase64 = (file) =>
 const RegisterPage = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const onFinish = async (values) => {
     try {
@@ -59,7 +67,16 @@ const RegisterPage = () => {
   };
 
   return (
-    <div>
+    <div
+      style={{
+        backgroundColor: isMobile ? "#f0f2f5" : "#e8f0fe",
+        minHeight: "100vh",
+        padding: "2em 1em",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
       <Form
         form={form}
         layout="vertical"
@@ -67,19 +84,20 @@ const RegisterPage = () => {
         onFinish={onFinish}
         autoComplete="off"
         style={{
-          maxWidth: 900,
-          margin: "0 auto",
-          padding: 24,
+          width: "100%",
+          maxWidth: 1000,
           background: "#fff",
-          borderRadius: 8,
+          padding: "2em",
+          borderRadius: "10px",
+          boxShadow: "0 0 10px rgba(0, 0, 0, 0.1)",
         }}
       >
         <h2 style={{ textAlign: "center", marginBottom: 24 }}>
           Employee Registration
         </h2>
 
-        <Row gutter={16}>
-          <Col span={12}>
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={24} md={12}>
             <Form.Item
               label="Full Name"
               name="name"
@@ -89,6 +107,7 @@ const RegisterPage = () => {
             >
               <Input />
             </Form.Item>
+
             <Form.Item
               label="Phone Number"
               name="phone"
@@ -98,6 +117,7 @@ const RegisterPage = () => {
             >
               <Input />
             </Form.Item>
+
             <Form.Item
               label="Department"
               name="department"
@@ -112,6 +132,7 @@ const RegisterPage = () => {
                 <Option value="Operations">Operations</Option>
               </Select>
             </Form.Item>
+
             <Form.Item
               label="Password"
               name="password"
@@ -121,6 +142,7 @@ const RegisterPage = () => {
             >
               <Input.Password />
             </Form.Item>
+
             <Form.Item
               label="Confirm Password"
               name="confirmPassword"
@@ -141,7 +163,7 @@ const RegisterPage = () => {
             </Form.Item>
           </Col>
 
-          <Col span={12}>
+          <Col xs={24} sm={24} md={12}>
             <Form.Item
               label="Employee ID"
               name="userId"
@@ -151,6 +173,7 @@ const RegisterPage = () => {
             >
               <Input />
             </Form.Item>
+
             <Form.Item
               label="Email Address"
               name="email"
@@ -161,6 +184,7 @@ const RegisterPage = () => {
             >
               <Input />
             </Form.Item>
+
             <Form.Item
               label="Designation"
               name="designation"
@@ -170,6 +194,7 @@ const RegisterPage = () => {
             >
               <Input />
             </Form.Item>
+
             <Form.Item
               label="Joining Date"
               name="joiningDate"
@@ -179,6 +204,7 @@ const RegisterPage = () => {
             >
               <DatePicker style={{ width: "100%" }} />
             </Form.Item>
+
             <Form.Item
               label="Profile Picture"
               name="profilePicture"
@@ -196,6 +222,13 @@ const RegisterPage = () => {
           <Button type="primary" htmlType="submit">
             Register
           </Button>
+          <p style={{ textAlign: "center" }}>
+            {" "}
+            Already have an Account
+            <Button type="link" onClick={() => navigate("/login")}>
+              Login
+            </Button>
+          </p>
         </Form.Item>
       </Form>
     </div>
