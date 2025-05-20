@@ -18,7 +18,7 @@ const MainRoute = () => {
         <Route path="/register" element={<RegisterPage />} />
         <Route
           path="/user"
-          element={
+          element={ 
             <PrivateRoute>
               <UserLayout />
             </PrivateRoute>
