@@ -82,7 +82,14 @@ const UserLayout = () => {
     <Layout style={{ minHeight: "100vh" }}>
       {/* Desktop Sider */}
       {!screens.xs && (
-        <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed}>
+        <Sider
+          collapsible
+          collapsed={collapsed}
+          onCollapse={setCollapsed}
+          style={{
+            backgroundColor: "#001529", // deep blue
+          }}
+        >
           <div
             style={{
               height: 64,
@@ -92,12 +99,13 @@ const UserLayout = () => {
               lineHeight: "64px",
               fontWeight: "bold",
               fontSize: "1.3em",
+              borderBottom: "1px solid rgba(255, 255, 255, 0.2)",
             }}
           >
             {collapsed ? "AT" : "AttendanceTracker"}
           </div>
           {menuItems}
-        </Sider>
+        </Sider>  
       )}
 
       <Layout>

@@ -58,9 +58,9 @@ const RegisterPage = () => {
         file: base64File,
       };
 
-      await API.post("/auth/register", payload);
+      const response = await API.post("/auth/register", payload);
       message.success("Registration successful!");
-      navigate("/");
+      navigate("/login");
     } catch (error) {
       message.error(error.response?.data?.msg || "Registration failed.");
     }
