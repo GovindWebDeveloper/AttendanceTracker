@@ -3,7 +3,7 @@ import Dashboard from "../pages/userLayout/page/Dashboard";
 import PrivateRoute from "./PrivateRoute";
 import UserLayout from "../pages/userLayout/UserLayout";
 import AdminLayout from "../pages/adminLayout/AdminLayout";
-import LoginPage from "../pages/authentication/LoginPage";
+import LoginPage from "../pages/authentication/Page";
 import RegisterPage from "../pages/authentication/RegisterPage";
 import NotFound from "../pages/NotFound";
 import Attendance from "../pages/userLayout/page/Attendance";
@@ -14,7 +14,7 @@ const MainRoute = () => {
   return (
     <div>
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route
           path="/user"

@@ -15,7 +15,7 @@ const NotFound = () => {
       }}
     >
       <h1 style={{ textAlign: "center" }}>Page not found!!!</h1>
-      <Button onClick={() => navigate("/login")}>Back</Button>
+      <Button onClick={() => navigate("/")}>Back</Button>
     </div>
   );
 };

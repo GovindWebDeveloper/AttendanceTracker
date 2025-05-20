@@ -36,7 +36,7 @@ const UserLayout = () => {
     if (key === "logout") {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-      navigate("/login");
+      navigate("/");
       console.log("Logged out");
     }
   };

@@ -60,7 +60,7 @@ const RegisterPage = () => {
 
       const response = await API.post("/auth/register", payload);
       message.success("Registration successful!");
-      navigate("/login");
+      navigate("/");
     } catch (error) {
       message.error(error.response?.data?.msg || "Registration failed.");
     }
@@ -225,7 +225,7 @@ const RegisterPage = () => {
           <p style={{ textAlign: "center" }}>
             {" "}
             Already have an Account
-            <Button type="link" onClick={() => navigate("/login")}>
+            <Button type="link" onClick={() => navigate("/")}>
               Login
             </Button>
           </p>
