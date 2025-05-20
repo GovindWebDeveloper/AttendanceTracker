@@ -19,7 +19,7 @@ const LoginPage = () => {
 
   const onFinish = async (values) => {
     try {
-      const response = await API.post("/auth/", {
+      const response = await API.post("/auth/login", {
         email: values.email,
         password: values.password,
       });
