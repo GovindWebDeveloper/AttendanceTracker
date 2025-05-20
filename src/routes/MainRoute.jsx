@@ -3,7 +3,7 @@ import Dashboard from "../pages/userLayout/page/Dashboard";
 import PrivateRoute from "./PrivateRoute";
 import UserLayout from "../pages/userLayout/UserLayout";
 import AdminLayout from "../pages/adminLayout/AdminLayout";
-import LoginPage from "../pages/authentication/Page";
+import LoginPage from "../pages/authentication/LoginPage";
 import RegisterPage from "../pages/authentication/RegisterPage";
 import NotFound from "../pages/NotFound";
 import Attendance from "../pages/userLayout/page/Attendance";
@@ -18,7 +18,7 @@ const MainRoute = () => {
         <Route path="/register" element={<RegisterPage />} />
         <Route
           path="/user"
-          element={ 
+          element={
             <PrivateRoute>
               <UserLayout />
             </PrivateRoute>
