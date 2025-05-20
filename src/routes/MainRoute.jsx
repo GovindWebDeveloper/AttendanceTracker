@@ -8,6 +8,7 @@ import RegisterPage from "../pages/authentication/RegisterPage";
 import NotFound from "../pages/NotFound";
 import Attendance from "../pages/userLayout/page/Attendance";
 import Profile from "../pages/userLayout/page/Profile";
+import AdminDashboard from "../pages/adminLayout/AdminDashboard";
 
 const MainRoute = () => {
   return (
@@ -35,8 +36,7 @@ const MainRoute = () => {
             </PrivateRoute>
           }
         >
-          <Route index element={<Dashboard />} />
-          {/* <Route path="report" element={<Report />} /> */}
+          <Route index element={<AdminDashboard />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>
