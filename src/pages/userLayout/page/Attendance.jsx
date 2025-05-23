@@ -1,12 +1,14 @@
-import { Table, Typography } from "antd";
+import { Button, Table, Typography } from "antd";
 import React, { useEffect, useState } from "react";
 import axios from "../../../services/authService";
 import { calculateTotalHours } from "../../../utils/timeUtils";
+import { useNavigate } from "react-router-dom";
 
 const { Title } = Typography;
 
 const Attendance = () => {
   const [data, setData] = useState([]);
+  const navigate = useNavigate();
 
   const fetchReport = async () => {
     try {
@@ -14,16 +16,13 @@ const Attendance = () => {
       const formatted = res.data.map((entry, index) => ({
         key: index,
         date: entry.date,
-        punchIn: entry.punchIn || "--",
-        punchOut: entry.punchOut || "--",
+        punches: entry.punches
+          ?.map((p) => `${p.punchIn} - ${p.punchOut || "--"}`)
+          ?.join(", "),
         breaks: entry.breaks
           ?.map((b) => `${b.breakIn} - ${b.breakOut || "--"}`)
           ?.join(", "),
-        totalHours: calculateTotalHours(
-          entry.punchIn,
-          entry.punchOut,
-          entry.breaks
-        ),
+        totalHours: calculateTotalHours(entry.punches, entry.breaks),
       }));
       setData(formatted);
     } catch (error) {
@@ -37,22 +36,25 @@ const Attendance = () => {
 
   const columns = [
     { title: "Date", dataIndex: "date", key: "date" },
-    { title: "Punch In", dataIndex: "punchIn", key: "punchIn" },
-    { title: "Punch Out", dataIndex: "punchOut", key: "punchOut" },
-    { title: "Breaks", dataIndex: "breaks", key: "breaks" },
-    { title: "Total Hours", dataIndex: "totalHours", key: "totalHours" },
+    { title: "Punch In-Out(Time) ", dataIndex: "punches", key: "punches" },
+    {
+      title: "Total Working Hours",
+      dataIndex: "totalHours",
+      key: "totalHours",
+    },
   ];
 
   return (
     <div style={{ padding: 12 }}>
-      <Title level={2}>Employee Attendance Report </Title>
+      <Title level={4}>Attendance Report</Title>
       <Table
         columns={columns}
         dataSource={data}
         bordered
         pagination={{ pageSize: 10 }}
-        scroll={{ x: "max-content" }} 
+        scroll={{ x: "max-content" }}
       />
+      <Button onClick={() => navigate("/user")}>Go Back</Button>
     </div>
   );
 };

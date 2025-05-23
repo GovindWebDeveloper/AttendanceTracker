@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Layout,
   Menu,
@@ -22,13 +22,16 @@ import {
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 
 const { Header, Sider, Content } = Layout;
-const { Title } = Typography;
 const { useBreakpoint } = Grid;
 
 const UserLayout = () => {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = React.useState(false);
   const [drawerVisible, setDrawerVisible] = React.useState(false);
+  const [currentDateTime, setCurrentDateTime] = useState({
+    date: "",
+    time: "",
+  });
   const screens = useBreakpoint();
   const location = useLocation();
 
@@ -45,9 +48,6 @@ const UserLayout = () => {
 
   const userMenu = (
     <Menu onClick={handleMenuClick}>
-      <Menu.Item key="profile" icon={<UserOutlined />}>
-        Profile
-      </Menu.Item>
       <Menu.Item key="logout" icon={<LogoutOutlined />}>
         Logout
       </Menu.Item>
@@ -57,7 +57,7 @@ const UserLayout = () => {
     ? "attendance"
     : location.pathname.startsWith("/user/profile")
     ? "profile"
-    : "dashboard"; // default fallback
+    : "dashboard";
 
   const menuItems = (
     <Menu
@@ -72,11 +72,35 @@ const UserLayout = () => {
       <Menu.Item key="attendance" icon={<ClockCircleOutlined />}>
         <NavLink to="/user/attendance"> Attendance</NavLink>
       </Menu.Item>
-      <Menu.Item key="profile" icon={<UserOutlined />}>
+      {/* <Menu.Item key="profile" icon={<UserOutlined />}>
         <NavLink to="/user/profile"> My Profile</NavLink>
-      </Menu.Item>
+      </Menu.Item> */}
     </Menu>
   );
+
+  // Current date and time
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date();
+      const date = now.getDate();
+      const months = now.getMonth() + 1;
+      const month = months.toString().padStart(2, "0");
+      const year = now.getFullYear();
+
+      const hour = now.getHours();
+      const minutes = now.getMinutes().toString().padStart(2, "0");
+      const seconds = now.getSeconds().toString().padStart(2, "0");
+      const ampm = hour >= 12 ? "PM" : "AM";
+      const hoursIn12 = hour % 12 || 12;
+      const hours = hoursIn12.toString().padStart(2, "0");
+
+      const todayDate = `${date}:${month}:${year}`;
+      const currentTime = `${hours}:${minutes}:${seconds} ${ampm}`;
+      setCurrentDateTime({ date: todayDate, time: currentTime });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
@@ -87,7 +111,7 @@ const UserLayout = () => {
           collapsed={collapsed}
           onCollapse={setCollapsed}
           style={{
-            backgroundColor: "#001529", // deep blue
+            backgroundColor: "#001529",
           }}
         >
           <div
@@ -105,7 +129,7 @@ const UserLayout = () => {
             {collapsed ? "AT" : "AttendanceTracker"}
           </div>
           {menuItems}
-        </Sider>  
+        </Sider>
       )}
 
       <Layout>
@@ -133,7 +157,8 @@ const UserLayout = () => {
                 }
               )
             )}
-            <Title level={4} style={{ margin: 0 }}></Title>
+            <span style={{ margin: 0 }}>{currentDateTime.date}</span>
+            <span style={{ margin: 0 }}>{currentDateTime.time}</span>
           </Space>
 
           <Dropdown overlay={userMenu} placement="bottomRight">
@@ -142,14 +167,13 @@ const UserLayout = () => {
                 style={{ backgroundColor: "#87d068" }}
                 icon={<UserOutlined />}
               />
-              <span>{User.name}</span>
+              <span>{User.username}</span>
             </Space>
           </Dropdown>
         </Header>
 
         {/* Drawer for mobile nav */}
         <Drawer
-          title="Menu"
           placement="left"
           closable={true}
           onClose={() => setDrawerVisible(false)}
@@ -161,8 +185,8 @@ const UserLayout = () => {
 
         <Content
           style={{
-            margin: "24px",
-            padding: 24,
+            // margin: "24px",
+            padding: 10,
             background: "#fff",
             minHeight: "80vh",
           }}

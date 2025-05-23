@@ -8,6 +8,8 @@ import { useEffect, useState } from "react";
 const LoginPage = () => {
   const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
 
   // Detect screen size
   useEffect(() => {
@@ -20,7 +22,7 @@ const LoginPage = () => {
   const onFinish = async (values) => {
     try {
       const response = await API.post("/auth/login", {
-        email: values.email,
+        username: values.username,
         password: values.password,
       });
       const { token, user } = response.data;
@@ -45,7 +47,9 @@ const LoginPage = () => {
   return (
     <div
       style={{
-        backgroundImage: isMobile ? "none" : `url(${images.loginBg})`,
+        backgroundImage: isMobile
+          ? `url(${images.loginBg})`
+          : `url(${images.loginBg})`,
         backgroundColor: isMobile ? "#f0f2f5" : "transparent",
         backgroundSize: "cover",
         backgroundPosition: "center",
@@ -61,7 +65,7 @@ const LoginPage = () => {
         style={{
           maxWidth: 450,
           width: "100%",
-          backgroundColor: "white",
+          backgroundColor: "rgba(255,255,255,0.9)",
           padding: "2em",
           border: "1px solid #d9d9d9",
           borderRadius: "10px",
@@ -78,19 +82,34 @@ const LoginPage = () => {
         </div>
 
         <Form.Item
-          name="email"
-          label="Email"
-          rules={[{ required: true, message: "Please input your email!" }]}
+          name="username"
+          label="Username"
+          rules={[
+            { required: true, message: "Please input your username!" },
+            {
+              pattern: "^[a-zA-Z][a-zA-Z0-9_]{5,19}$",
+              message:
+                "Username must start with a letter, can contain letters, numbers, and underscores, and must be 5 to 20 characters long",
+            },
+          ]}
         >
-          <Input placeholder="Email" />
+          <Input
+            placeholder="Username"
+            onChange={(e) => setUsername(e.target.value)}
+          />
         </Form.Item>
 
         <Form.Item
           name="password"
           label="Password"
-          rules={[{ required: true, message: "Please input your password!" }]}
+          rules={[{ required: true, message: "Please input your password!" },
+            {pattern:"^.{6,20}$", message:"Password must be between 6 and 20 characters long."}
+          ]}
         >
-          <Input.Password placeholder="Password" />
+          <Input.Password
+            placeholder="Password"
+            onChange={(e) => setPassword(e.target.value)}
+          />
         </Form.Item>
 
         <Form.Item>
@@ -99,12 +118,12 @@ const LoginPage = () => {
           </Button>
         </Form.Item>
 
-        <p style={{ textAlign: "center" }}>
+        {/* <p style={{ textAlign: "center" }}>
           Don't have an account?{" "}
           <Button type="link" onClick={() => navigate("/register")}>
             Register
           </Button>
-        </p>
+        </p> */}
       </Form>
     </div>
   );

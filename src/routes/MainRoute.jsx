@@ -2,13 +2,13 @@ import { Routes, Route } from "react-router-dom";
 import Dashboard from "../pages/userLayout/page/Dashboard";
 import PrivateRoute from "./PrivateRoute";
 import UserLayout from "../pages/userLayout/UserLayout";
-import AdminLayout from "../pages/adminLayout/AdminLayout";
+// import AdminLayout from "../pages/adminLayout/AdminLayout";
 import LoginPage from "../pages/authentication/LoginPage";
 import RegisterPage from "../pages/authentication/RegisterPage";
 import NotFound from "../pages/NotFound";
 import Attendance from "../pages/userLayout/page/Attendance";
 import Profile from "../pages/userLayout/page/Profile";
-import AdminDashboard from "../pages/adminLayout/AdminDashboard";
+// import AdminDashboard from "../pages/adminLayout/AdminDashboard";
 
 const MainRoute = () => {
   return (
@@ -28,7 +28,7 @@ const MainRoute = () => {
           <Route path="attendance" element={<Attendance />} />
           <Route path="profile" element={<Profile />} />
         </Route>
-        <Route
+        {/* <Route
           path="/admin"
           element={
             <PrivateRoute>
@@ -37,7 +37,7 @@ const MainRoute = () => {
           }
         >
           <Route index element={<AdminDashboard />} />
-        </Route>
+        </Route> */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </div>
