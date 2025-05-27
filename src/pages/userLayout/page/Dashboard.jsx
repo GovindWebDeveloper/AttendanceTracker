@@ -15,7 +15,6 @@ import {
   Spin,
 } from "antd";
 import moment from "moment";
-import { calculateTotalHours } from "../../../utils/timeUtils";
 import {
   postAttendanceAction,
   getMyAttendance,
@@ -31,13 +30,17 @@ const Dashboard = () => {
   const [status, setStatus] = useState({
     punchIn: null,
     punchOut: null,
+    signOut: null,
   });
-
-  const [totalHours, setTotalHours] = useState("0:00");
+  const [totalWorkHours, setTotalWorkHours] = useState("0:00");
+  const [totalBreakHours, setTotalBreakHours] = useState("0:00");
+  const [totalExtraHours, setTotalExtraHours] = useState("0:00");
+  const [actualBreakHours, setActualBreakHours] = useState("0:00");
+  const [firstPunchIn, setFirstPunchIn] = useState(null);
+  const [lastPunchOut, setLastPunchOut] = useState(null);
   const [isWorking, setIsWorking] = useState(false);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-
   const [currentDate, setCurrentDate] = useState(moment().format("YYYY-MM-DD"));
 
   const fetchAttendanceData = async () => {
@@ -52,17 +55,51 @@ const Dashboard = () => {
           punches.length > 0 ? punches[punches.length - 1] : null;
         const isCurrentlyWorking = lastPunch && !lastPunch.punchOut;
 
+        const signs = Array.isArray(today.signs) ? today.signs : [];
+        const lastSigns = signs.length > 0 ? signs[signs.length - 1] : null;
+
         setStatus({
           punchIn: lastPunch?.punchIn || null,
           punchOut: lastPunch?.punchOut || null,
+          signOut: lastSigns?.signOut || null,
+          signIn: lastSigns?.signIn || null,
         });
 
         setIsWorking(isCurrentlyWorking);
-        setTotalHours(calculateTotalHours(punches) || "0:00");
+
+        const firstPunch = punches.find((p) => p.punchIn);
+        const lastOut = [...punches].reverse().find((p) => p.punchOut);
+
+        setFirstPunchIn(firstPunch?.punchIn || null);
+        setLastPunchOut(lastOut?.punchOut || null);
+        setTotalBreakHours(today.breakHours);
+        setTotalExtraHours(today.extraHoursToSkip);
+
+        const formatDuration = (ms) => {
+          const duration = moment.duration(ms);
+          const hours = Math.floor(duration.asHours());
+          const minutes = duration.minutes();
+          const seconds = duration.seconds();
+          return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds
+            .toString()
+            .padStart(2, "0")}`;
+        };
+        const actualBreakHour = today.breakHours - today.extraHoursToSkip;
+        setTotalWorkHours(formatDuration(today.workHours || 0));
+        setActualBreakHours(formatDuration(actualBreakHour || 0));
       } else {
-        setStatus({ punchIn: null, punchOut: null });
+        setStatus({
+          punchIn: null,
+          punchOut: null,
+          signOut: null,
+          signIn: null,
+        });
+        setFirstPunchIn(null);
+        setLastPunchOut(null);
         setIsWorking(false);
-        setTotalHours("0:00");
+        setTotalWorkHours("0:00");
+        setTotalBreakHours("0:00");
+        setTotalExtraHours("0:00");
       }
     } catch (error) {
       console.error("Error fetching attendance:", error);
@@ -115,6 +152,14 @@ const Dashboard = () => {
         return;
       }
 
+      if (type === "signOut") {
+        await postAttendanceAction("signOut");
+        await fetchAttendanceData();
+        message.success("Punched Out successfully");
+        setActionLoading(false);
+        return;
+      }
+
       await postAttendanceAction(type);
 
       if (type === "punchIn") {
@@ -147,6 +192,13 @@ const Dashboard = () => {
     );
   }
 
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    navigate("/");
+    console.log("Logged Out");
+  };
+
   return (
     <div style={{ padding: 16 }}>
       <Title level={4}>Attendance Dashboard</Title>
@@ -163,7 +215,6 @@ const Dashboard = () => {
             <>
               {!status.punchIn ? (
                 <>
-                  {" "}
                   <p>SignIn to start tracking your working hour.</p>
                   <Button
                     type="primary"
@@ -179,9 +230,8 @@ const Dashboard = () => {
                   <Row gutter={16}>
                     <Col xs={24} sm={12} md={6}>
                       <Statistic
-                        title="SignIn"
-                        value={status.punchIn}
-                        prefix={<ClockCircleOutlined />}
+                        title="SignIn(Time)"
+                        value={firstPunchIn || "N/A"}
                       />
                     </Col>
                     <Col xs={24} sm={12} md={6}>
@@ -206,13 +256,19 @@ const Dashboard = () => {
             <>
               <Row gutter={16}>
                 <Col xs={24} sm={12} md={6}>
-                  <Statistic title="SignIn(Time)" value={status.punchIn} />
+                  <Statistic
+                    title="SignIn(Time)"
+                    value={firstPunchIn || "N/A"}
+                  />
                 </Col>
                 <Col xs={24} sm={12} md={6}>
                   <Statistic title="SignOut(Time)" value={status.punchOut} />
                 </Col>
                 <Col xs={24} sm={12} md={6}>
-                  <Statistic title="Total Hours" value={totalHours} />
+                  <Statistic title="Total Work" value={totalWorkHours} />
+                </Col>
+                <Col xs={24} sm={12} md={6}>
+                  <Statistic title="Total Break" value={actualBreakHours} />
                 </Col>
               </Row>
               <Button
@@ -225,6 +281,20 @@ const Dashboard = () => {
               </Button>
               <Button onClick={() => navigate("/user/attendance")}>
                 View Report
+              </Button>
+              <Button
+                color="danger"
+                variant="solid"
+                onClick={async () => {
+                  try {
+                    await handleAction("signOut");
+                    handleLogout();
+                  } catch (error) {
+                    console.error("SignOut and logged out failed");
+                  }
+                }}
+              >
+                PunchOut
               </Button>
             </>
           )}
