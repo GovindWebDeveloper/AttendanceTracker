@@ -1,6 +1,6 @@
 import "@ant-design/v5-patch-for-react-19";
 import { useEffect, useState } from "react";
-import { PlayCircleOutlined, ClockCircleOutlined } from "@ant-design/icons";
+import { PlayCircleOutlined } from "@ant-design/icons";
 import {
   Card,
   Row,

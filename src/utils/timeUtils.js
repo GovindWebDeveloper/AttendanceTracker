@@ -1,35 +1,5 @@
 import moment from "moment";
 
-// Format seconds into HH:mm:ss
-export const formatTime = (seconds) => {
-  const hrs = Math.floor(seconds / 3600)
-    .toString()
-    .padStart(2, "0");
-  const mins = Math.floor((seconds % 3600) / 60)
-    .toString()
-    .padStart(2, "0");
-  const secs = Math.floor(seconds % 60)
-    .toString()
-    .padStart(2, "0");
-  const ampm = hrs >= 12 ? "PM" : "AM";
-  hrs % 12 || 12;
-  return `${hrs}:${mins}:${secs} ${ampm}`;
-};
-
-// Format seconds (Timer) into HH:mm:ss
-export const formatTimer = (seconds) => {
-  const hrs = Math.floor(seconds / 3600)
-    .toString()
-    .padStart(2, "0");
-  const mins = Math.floor((seconds % 3600) / 60)
-    .toString()
-    .padStart(2, "0");
-  const secs = Math.floor(seconds % 60)
-    .toString()
-    .padStart(2, "0");
-  return `${hrs}:${mins}:${secs}`;
-};
-
 // Calculate total working hours, subtracting breaks
 export const calculateTotalHours = (punches, breaks) => {
   const safePunches = Array.isArray(punches) ? punches : [];
