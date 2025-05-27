@@ -8,11 +8,11 @@ import {
   Button,
   Statistic,
   Typography,
-  Divider,
   Space,
   message,
   Popconfirm,
   Spin,
+  Divider,
 } from "antd";
 import moment from "moment";
 import {
@@ -204,7 +204,6 @@ const Dashboard = () => {
       <Title level={4}>Attendance Dashboard</Title>
       <Text type="secondary">Track your workday in real time.</Text>
       <Divider />
-
       <Card bordered>
         <Space
           direction="vertical"
@@ -229,10 +228,7 @@ const Dashboard = () => {
                 <>
                   <Row gutter={16}>
                     <Col xs={24} sm={12} md={6}>
-                      <Statistic
-                        title="SignIn(Time)"
-                        value={firstPunchIn || "N/A"}
-                      />
+                      <Statistic title="SignIn(Time)" value={firstPunchIn} />
                     </Col>
                     <Col xs={24} sm={12} md={6}>
                       <PersistentTimer isRunning={isWorking} />
@@ -256,10 +252,7 @@ const Dashboard = () => {
             <>
               <Row gutter={16}>
                 <Col xs={24} sm={12} md={6}>
-                  <Statistic
-                    title="SignIn(Time)"
-                    value={firstPunchIn || "N/A"}
-                  />
+                  <Statistic title="SignIn(Time)" value={firstPunchIn} />
                 </Col>
                 <Col xs={24} sm={12} md={6}>
                   <Statistic title="SignOut(Time)" value={status.punchOut} />
