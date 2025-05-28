@@ -1,6 +1,5 @@
 import "@ant-design/v5-patch-for-react-19";
-import { useEffect } from "react";
-import { PlayCircleOutlined } from "@ant-design/icons";
+import { useEffect, useState } from "react";
 import {
   Card,
   Row,
@@ -10,10 +9,16 @@ import {
   Typography,
   Space,
   message,
-  Popconfirm,
+  Modal,
   Spin,
   Divider,
+  Badge,
 } from "antd";
+import {
+  PlayCircleOutlined,
+  PoweroffOutlined,
+  ClockCircleOutlined,
+} from "@ant-design/icons";
 import moment from "moment";
 import { useNavigate } from "react-router-dom";
 import PersistentTimer from "./Timer";
@@ -42,6 +47,8 @@ const Dashboard = () => {
     error,
     currentDate,
   } = useSelector((state) => state.attendance);
+
+  const [signOutModalVisible, setSignOutModalVisible] = useState(false);
 
   useEffect(() => {
     dispatch(fetchMyAttendance());
@@ -83,117 +90,157 @@ const Dashboard = () => {
       console.error("Error to fetch the attendance data", message.error);
     }
   };
+
   if (loading) {
     return (
-      <div style={{ padding: 100, textAlign: "center" }}>
-        <Spin tip="Loading Dashboard..." size="large" />
+      <div
+        style={{
+          height: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Spin size="large" tip="Loading your Dashboard..." />
       </div>
     );
   }
+
   if (error) {
-    return <div>Error:{error}</div>;
+    return <div>Error: {error}</div>;
   }
 
   return (
-    <div style={{ padding: 16 }}>
-      <Title level={4}>Attendance Dashboard</Title>
-      <Text type="secondary">Track your workday in real time.</Text>
-      <Divider />
-      <Card bordered>
-        <Space
-          direction="vertical"
-          style={{ width: "100%", textAlign: "center" }}
-          size="large"
-        >
-          {!status.punchOut ? (
-            <>
-              {!status.punchIn ? (
+    <div style={{ padding: "24px", background: "#f5f5f5", minHeight: "100vh" }}>
+      <Title level={3} style={{ textAlign: "center", marginBottom: "16px" }}>
+        My Attendance Dashboard
+      </Title>
+      <Text
+        type="secondary"
+        style={{ display: "block", textAlign: "center", marginBottom: "24px" }}
+      >
+        Track your workday in real time with live updates
+      </Text>
+
+      <Row gutter={[24, 24]} justify="center">
+        <Col xs={24} md={18} lg={12}>
+          <Card
+            bordered={false}
+            style={{
+              borderRadius: "16px",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+            }}
+            bodyStyle={{ padding: "24px" }}
+          >
+            <Space direction="vertical" size="large" style={{ width: "100%" }}>
+              {!status.punchOut ? (
                 <>
-                  <p>SignIn to start tracking your working hour.</p>
-                  <Button
-                    type="primary"
-                    icon={<PlayCircleOutlined />}
-                    onClick={() => handleAction("punchIn")}
-                    loading={loading}
-                  >
-                    SignIn
-                  </Button>
+                  {!status.punchIn ? (
+                    <div style={{ textAlign: "center" }}>
+                      <Text strong>Start your day by signing in</Text>
+                      <br />
+                      <Button
+                        type="primary"
+                        size="large"
+                        icon={<PlayCircleOutlined />}
+                        onClick={() => handleAction("punchIn")}
+                      >
+                        Sign In
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <Row gutter={16} justify="space-around">
+                        <Col>
+                          <Statistic
+                            title="Sign In Time"
+                            value={firstPunchIn || "N/A"}
+                            prefix={<ClockCircleOutlined />}
+                          />
+                        </Col>
+                        <Col>
+                          <PersistentTimer isRunning={isWorking} />
+                        </Col>
+                      </Row>
+
+                      <Button
+                        danger
+                        size="large"
+                        onClick={() => setSignOutModalVisible(true)}
+                      >
+                        Sign Out
+                      </Button>
+
+                      <Modal
+                        title="Confirm Sign Out"
+                        visible={signOutModalVisible}
+                        onOk={() => {
+                          setSignOutModalVisible(false);
+                          handleAction("punchOut");
+                        }}
+                        onCancel={() => setSignOutModalVisible(false)}
+                        okText="Sign Out"
+                        cancelText="Cancel"
+                      >
+                        <p>Are you sure you want to sign out?</p>
+                      </Modal>
+                    </>
+                  )}
                 </>
               ) : (
                 <>
-                  <Row gutter={16}>
-                    <Col xs={24} sm={12} md={6}>
-                      <Statistic title="SignIn(Time)" value={firstPunchIn} />
+                  <Row gutter={[16, 16]} justify="space-around">
+                    <Col>
+                      <Statistic title="Sign In Time" value={firstPunchIn} />
                     </Col>
-                    <Col xs={24} sm={12} md={6}>
-                      <PersistentTimer isRunning={isWorking} />
+                    <Col>
+                      <Statistic title="Sign Out Time" value={lastPunchOut} />
+                    </Col>
+                    <Col>
+                      <Statistic title="Total Work" value={totalWorkHour} />
+                    </Col>
+                    <Col>
+                      <Statistic title="Total Break" value={actualBreakHour} />
                     </Col>
                   </Row>
-
-                  <Popconfirm
-                    title="Confirm SignOut"
-                    onConfirm={() => handleAction("punchOut")}
-                    okText="Yes"
-                    cancelText="No"
-                    loading={loading}
+                  <Divider />
+                  <Space
+                    wrap
+                    size="middle"
+                    style={{ justifyContent: "center", width: "100%" }}
                   >
-                    <Button danger loading={loading}>
-                      SignOut
+                    <Button
+                      type="primary"
+                      icon={<PlayCircleOutlined />}
+                      onClick={() => handleAction("punchIn")}
+                    >
+                      Sign In Again
                     </Button>
-                  </Popconfirm>
+                    <Button onClick={() => navigate("/user/attendance")}>
+                      View Report
+                    </Button>
+                    <Button
+                      danger
+                      icon={<PoweroffOutlined />}
+                      onClick={async () => {
+                        try {
+                          await handleAction("signOut");
+                          dispatch(logout());
+                          navigate("/");
+                        } catch (error) {
+                          console.log("Error SignOut and logout", error);
+                        }
+                      }}
+                    >
+                      Log Out
+                    </Button>
+                  </Space>
                 </>
               )}
-            </>
-          ) : (
-            <>
-              <Row gutter={16}>
-                <Col xs={24} sm={12} md={6}>
-                  <Statistic title="SignIn(Time)" value={firstPunchIn} />
-                </Col>
-                <Col xs={24} sm={12} md={6}>
-                  <Statistic title="SignOut(Time)" value={lastPunchOut} />
-                </Col>
-                <Col xs={24} sm={12} md={6}>
-                  <Statistic title="Total Work" value={totalWorkHour} />
-                </Col>
-                <Col xs={24} sm={12} md={6}>
-                  <Statistic title="Total Break" value={actualBreakHour} />
-                </Col>
-              </Row>
-              <Button
-                type="primary"
-                icon={<PlayCircleOutlined />}
-                onClick={() => handleAction("punchIn")}
-                loading={loading}
-              >
-                SignIn Again
-              </Button>
-              <Button
-                onClick={() => navigate("/user/attendance")}
-                loading={loading}
-              >
-                View Report
-              </Button>
-              <Button
-                color="danger"
-                variant="solid"
-                onClick={async () => {
-                  try {
-                    await handleAction("signOut");
-                    dispatch(logout());
-                    navigate("/");
-                  } catch (error) {
-                    console.log("Error SignOut and logout", error);
-                  }
-                }}
-                loading={loading}
-              >
-                PunchOut
-              </Button>
-            </>
-          )}
-        </Space>
-      </Card>
+            </Space>
+          </Card>
+        </Col>
+      </Row>
     </div>
   );
 };
