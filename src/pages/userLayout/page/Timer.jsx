@@ -11,6 +11,7 @@ const PersistentTimer = ({ isRunning }) => {
       }
     } else {
       localStorage.removeItem("startTime");
+      localStorage.removeItem("isRunning");
     }
     localStorage.setItem("isRunning", isRunning.toString());
   }, [isRunning]);

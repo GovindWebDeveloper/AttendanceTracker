@@ -1,5 +1,5 @@
 import "@ant-design/v5-patch-for-react-19";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { PlayCircleOutlined } from "@ant-design/icons";
 import {
   Card,
@@ -15,175 +15,74 @@ import {
   Divider,
 } from "antd";
 import moment from "moment";
-import {
-  postAttendanceAction,
-  getMyAttendance,
-} from "../../../services/attendanceService";
 import { useNavigate } from "react-router-dom";
 import PersistentTimer from "./Timer";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  fetchMyAttendance,
+  handleAttendanceAction,
+  updateCurrentDate,
+} from "../../../redux/slices/attendanceSlice";
+import { logout } from "../../../redux/slices/authSlice";
 
 const { Title, Text } = Typography;
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-  const [status, setStatus] = useState({
-    punchIn: null,
-    punchOut: null,
-    signOut: null,
-  });
-  const [totalWorkHours, setTotalWorkHours] = useState("0:00");
-  const [totalBreakHours, setTotalBreakHours] = useState("0:00");
-  const [totalExtraHours, setTotalExtraHours] = useState("0:00");
-  const [actualBreakHours, setActualBreakHours] = useState("0:00");
-  const [firstPunchIn, setFirstPunchIn] = useState(null);
-  const [lastPunchOut, setLastPunchOut] = useState(null);
-  const [isWorking, setIsWorking] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
-  const [currentDate, setCurrentDate] = useState(moment().format("YYYY-MM-DD"));
-
-  const fetchAttendanceData = async () => {
-    try {
-      const res = await getMyAttendance();
-      const todayDate = moment().format("YYYY-MM-DD");
-      const today = res.data.find((entry) => entry.date === todayDate);
-
-      if (today) {
-        const punches = Array.isArray(today.punches) ? today.punches : [];
-        const lastPunch =
-          punches.length > 0 ? punches[punches.length - 1] : null;
-        const isCurrentlyWorking = lastPunch && !lastPunch.punchOut;
-
-        const signs = Array.isArray(today.signs) ? today.signs : [];
-        const lastSigns = signs.length > 0 ? signs[signs.length - 1] : null;
-
-        setStatus({
-          punchIn: lastPunch?.punchIn || null,
-          punchOut: lastPunch?.punchOut || null,
-          signOut: lastSigns?.signOut || null,
-          signIn: lastSigns?.signIn || null,
-        });
-
-        setIsWorking(isCurrentlyWorking);
-
-        const firstPunch = punches.find((p) => p.punchIn);
-        const lastOut = [...punches].reverse().find((p) => p.punchOut);
-
-        setFirstPunchIn(firstPunch?.punchIn || null);
-        setLastPunchOut(lastOut?.punchOut || null);
-        setTotalBreakHours(today.breakHours);
-        setTotalExtraHours(today.extraHoursToSkip);
-
-        const formatDuration = (ms) => {
-          const duration = moment.duration(ms);
-          const hours = Math.floor(duration.asHours());
-          const minutes = duration.minutes();
-          const seconds = duration.seconds();
-          return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds
-            .toString()
-            .padStart(2, "0")}`;
-        };
-        const actualBreakHour = today.breakHours - today.extraHoursToSkip;
-        setTotalWorkHours(formatDuration(today.workHours || 0));
-        setActualBreakHours(formatDuration(actualBreakHour || 0));
-      } else {
-        setStatus({
-          punchIn: null,
-          punchOut: null,
-          signOut: null,
-          signIn: null,
-        });
-        setFirstPunchIn(null);
-        setLastPunchOut(null);
-        setIsWorking(false);
-        setTotalWorkHours("0:00");
-        setTotalBreakHours("0:00");
-        setTotalExtraHours("0:00");
-      }
-    } catch (error) {
-      console.error("Error fetching attendance:", error);
-      message.error("Failed to load attendance data.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    status,
+    totalWorkHour,
+    actualBreakHour,
+    firstPunchIn,
+    lastPunchOut,
+    isWorking,
+    loading,
+    error,
+    currentDate,
+  } = useSelector((state) => state.attendance);
 
   useEffect(() => {
-    fetchAttendanceData();
-  }, []);
+    dispatch(fetchMyAttendance());
+  }, [dispatch]);
 
   useEffect(() => {
-    const interval = setInterval(async () => {
-      const nowDate = moment().format("YYYY-MM-DD");
-      if (nowDate !== currentDate) {
-        await handleAction("punchOut", true);
-        setTimeout(async () => {
-          await postAttendanceAction("punchIn");
-          setStatus((prev) => ({
-            ...prev,
-            punchIn: new Date().toLocaleTimeString(),
-            punchOut: null,
-          }));
-          setIsWorking(true);
-          setCurrentDate(nowDate);
-          await fetchAttendanceData();
-        }, 1000);
+    const interval = setInterval(() => {
+      const now = moment();
+      const nowDate = now.format("YYYY-MM-DD");
+      const nowTime = now.format("HH:mm:ss");
+
+      if (nowDate !== moment().format("YYYY-MM-DD")) {
+        dispatch(updateCurrentDate(nowDate));
+        dispatch(handleAttendanceAction({ type: "punchOut" }));
+        dispatch(fetchMyAttendance()).then(() => {
+          dispatch(handleAttendanceAction({ type: "punchIn" }));
+          dispatch(fetchMyAttendance());
+        });
       }
-    }, 60 * 1000);
+      if (now.hour() === 23 && now.minute() === 59 && now.second() === 58) {
+        dispatch(handleAttendanceAction({ type: "punchOut" }));
+        dispatch(fetchMyAttendance());
+      }
+
+      if (now.hour() === 0 && now.minute() === 0 && now.second() === 1) {
+        dispatch(handleAttendanceAction({ type: "punchIn" }));
+        dispatch(fetchMyAttendance());
+      }
+    }, 1000);
 
     return () => clearInterval(interval);
-  }, [currentDate]);
+  }, [dispatch]);
 
-  const handleAction = async (type, silent = false) => {
-    if (actionLoading) return;
-    setActionLoading(true);
-
+  const handleAction = async (type) => {
     try {
-      if (type === "punchIn" && status.punchIn && !status.punchOut && !silent) {
-        message.warning("Already Signed In.");
-        setActionLoading(false);
-        return;
-      }
-
-      if (type === "punchOut" && status.punchOut && !silent) {
-        message.warning("Already Signed Out.");
-        setActionLoading(false);
-        return;
-      }
-
-      if (type === "signOut") {
-        await postAttendanceAction("signOut");
-        await fetchAttendanceData();
-        message.success("Punched Out successfully");
-        setActionLoading(false);
-        return;
-      }
-
-      await postAttendanceAction(type);
-
-      if (type === "punchIn") {
-        setStatus((prev) => ({
-          ...prev,
-          punchIn: new Date().toLocaleTimeString(),
-          punchOut: null,
-        }));
-        setIsWorking(true);
-        if (!silent) message.success("SignIn Success.");
-      } else if (type === "punchOut") {
-        setIsWorking(false);
-        if (!silent) message.success("SignOut Success.");
-      }
-
-      await fetchAttendanceData();
-    } catch (err) {
-      console.error("Action error:", err);
-      if (!silent) message.error("Action failed.");
-    } finally {
-      setActionLoading(false);
+      await dispatch(handleAttendanceAction({ type })).unwrap();
+      await dispatch(fetchMyAttendance()).unwrap();
+    } catch (error) {
+      console.error("Error to fetch the attendance data", message.error);
     }
   };
-
   if (loading) {
     return (
       <div style={{ padding: 100, textAlign: "center" }}>
@@ -191,13 +90,9 @@ const Dashboard = () => {
       </div>
     );
   }
-
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
-    navigate("/");
-    console.log("Logged Out");
-  };
+  if (error) {
+    return <div>Error:{error}</div>;
+  }
 
   return (
     <div style={{ padding: 16 }}>
@@ -219,7 +114,7 @@ const Dashboard = () => {
                     type="primary"
                     icon={<PlayCircleOutlined />}
                     onClick={() => handleAction("punchIn")}
-                    loading={actionLoading}
+                    loading={loading}
                   >
                     SignIn
                   </Button>
@@ -240,8 +135,9 @@ const Dashboard = () => {
                     onConfirm={() => handleAction("punchOut")}
                     okText="Yes"
                     cancelText="No"
+                    loading={loading}
                   >
-                    <Button danger loading={actionLoading}>
+                    <Button danger loading={loading}>
                       SignOut
                     </Button>
                   </Popconfirm>
@@ -255,24 +151,27 @@ const Dashboard = () => {
                   <Statistic title="SignIn(Time)" value={firstPunchIn} />
                 </Col>
                 <Col xs={24} sm={12} md={6}>
-                  <Statistic title="SignOut(Time)" value={status.punchOut} />
+                  <Statistic title="SignOut(Time)" value={lastPunchOut} />
                 </Col>
                 <Col xs={24} sm={12} md={6}>
-                  <Statistic title="Total Work" value={totalWorkHours} />
+                  <Statistic title="Total Work" value={totalWorkHour} />
                 </Col>
                 <Col xs={24} sm={12} md={6}>
-                  <Statistic title="Total Break" value={actualBreakHours} />
+                  <Statistic title="Total Break" value={actualBreakHour} />
                 </Col>
               </Row>
               <Button
                 type="primary"
                 icon={<PlayCircleOutlined />}
                 onClick={() => handleAction("punchIn")}
-                loading={actionLoading}
+                loading={loading}
               >
                 SignIn Again
               </Button>
-              <Button onClick={() => navigate("/user/attendance")}>
+              <Button
+                onClick={() => navigate("/user/attendance")}
+                loading={loading}
+              >
                 View Report
               </Button>
               <Button
@@ -281,11 +180,13 @@ const Dashboard = () => {
                 onClick={async () => {
                   try {
                     await handleAction("signOut");
-                    handleLogout();
+                    dispatch(logout());
+                    navigate("/");
                   } catch (error) {
-                    console.error("SignOut and logged out failed");
+                    console.log("Error SignOut and logout", error);
                   }
                 }}
+                loading={loading}
               >
                 PunchOut
               </Button>
