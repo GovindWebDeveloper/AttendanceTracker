@@ -1,47 +1,40 @@
 import { Form, Input, Button, message } from "antd";
 import { images } from "../../assets";
 import { FaUser } from "react-icons/fa";
-import API from "../../services/authService";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { loginUser } from "../../redux/slices/authSlice";
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { loading, error, user } = useSelector((state) => state.auth);
   const [isMobile, setIsMobile] = useState(false);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
 
   // Detect screen size
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
-    handleResize(); // initial check
+    handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const onFinish = async (values) => {
-    try {
-      const response = await API.post("/auth/login", {
-        username: values.username,
-        password: values.password,
-      });
-      const { token, user } = response.data;
-
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
-
+  // Navigation based in role
+  useEffect(() => {
+    if (user) {
       if (user.role === "admin") {
         navigate("/admin");
-      } else if (user.role === "user") {
+      } else {
         navigate("/user");
       }
-    } catch (err) {
-      message.error(err.response?.data?.msg || "Login Failed");
     }
-  };
+  }, [user, navigate]);
 
-  const onFinishFailed = (errorInfo) => {
-    message.warning("Please fill all required fields!");
+  const onFinish = async (values) => {
+    dispatch(loginUser(values))
+      .unwrap()
+      .catch((err) => message.error(err));
   };
 
   return (
@@ -73,7 +66,6 @@ const LoginPage = () => {
         }}
         layout="vertical"
         onFinish={onFinish}
-        onFinishFailed={onFinishFailed}
         autoComplete="off"
       >
         <div style={{ textAlign: "center", marginBottom: "1em" }}>
@@ -93,37 +85,29 @@ const LoginPage = () => {
             },
           ]}
         >
-          <Input
-            placeholder="Username"
-            onChange={(e) => setUsername(e.target.value)}
-          />
+          <Input placeholder="Username" />
         </Form.Item>
 
         <Form.Item
           name="password"
           label="Password"
-          rules={[{ required: true, message: "Please input your password!" },
-            {pattern:"^.{6,20}$", message:"Password must be between 6 and 20 characters long."}
+          rules={[
+            { required: true, message: "Please input your password!" },
+            {
+              pattern: "^.{6,20}$",
+              message: "Password must be between 6 and 20 characters long.",
+            },
           ]}
         >
-          <Input.Password
-            placeholder="Password"
-            onChange={(e) => setPassword(e.target.value)}
-          />
+          <Input.Password placeholder="Password" />
         </Form.Item>
 
         <Form.Item>
-          <Button type="primary" htmlType="submit" block>
-            Submit
+          <Button type="primary" htmlType="submit" block loading={loading}>
+            {loading ? "Logging in..." : "Submit"}
           </Button>
         </Form.Item>
-
-        {/* <p style={{ textAlign: "center" }}>
-          Don't have an account?{" "}
-          <Button type="link" onClick={() => navigate("/register")}>
-            Register
-          </Button>
-        </p> */}
+        {error && <p style={{ color: "red", textAlign: "center" }}>{error}</p>}
       </Form>
     </div>
   );

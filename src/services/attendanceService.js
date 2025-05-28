@@ -10,5 +10,3 @@ export const postAttendanceAction = (type, payload = {}) => {
 export const getMyAttendance = () => {
   return axios.get("/attendance/my-attendance");
 };
-
-//Get user's working hour
